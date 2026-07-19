@@ -100,9 +100,21 @@ function humanFlag(code: string): string {
   return code.replaceAll("_", " ").toLowerCase();
 }
 
+type SessionSnapshot = {
+  id: string;
+  createdAt: string;
+  consentAt: string | null;
+  householdId: string | null;
+  documents: unknown[];
+  activeDocumentId: string | null;
+  deleted: boolean;
+  audit: Array<{ at: string; action: string; detail: string }>;
+};
+
 export default function CiteCheckApp() {
   const [step, setStep] = useState<StepId>("docs");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [consent, setConsent] = useState(false);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [householdId, setHouseholdId] = useState("HH-001");
@@ -135,8 +147,14 @@ export default function CiteCheckApp() {
       ]);
       setHouseholds(m.households ?? []);
       setSessionId(s.sessionId);
+      setSession(s.session ?? null);
     })();
   }, []);
+
+  function adoptSession(data: { sessionId?: string; session?: SessionSnapshot | null }) {
+    if (data.session) setSession(data.session);
+    if (data.sessionId) setSessionId(data.sessionId);
+  }
 
   const currentHousehold = households.find((h) => h.household_id === householdId);
   const requiredTypes = currentHousehold?.required_document_types ?? [
@@ -171,10 +189,11 @@ export default function CiteCheckApp() {
       const res = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, householdId, consent: true }),
+        body: JSON.stringify({ sessionId, session, householdId, consent: true }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      adoptSession(data);
       setDocs(data.documents ?? []);
       const firstPayStub =
         (data.documents as DocMeta[] | undefined)?.find((d) => d.document_type === "pay_stub")
@@ -204,10 +223,11 @@ export default function CiteCheckApp() {
       const res = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, documentId: docId, consent: true, confirmAll }),
+        body: JSON.stringify({ sessionId, session, documentId: docId, consent: true, confirmAll }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      adoptSession(data);
       setFields(data.fields);
       setPdfUrl(data.document.pdfUrl);
       setStatus(
@@ -231,6 +251,7 @@ export default function CiteCheckApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
+          session,
           documentId: docId,
           updates: fields.map((f) => ({
             field: f.field,
@@ -241,6 +262,7 @@ export default function CiteCheckApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      adoptSession(data);
       setFields(data.document.fields);
       const type = data.document.documentType as string;
       setSavedDocTypes((prev) => (prev.includes(type) ? prev : [...prev, type]));
@@ -265,9 +287,11 @@ export default function CiteCheckApp() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, question: finalQ }),
+        body: JSON.stringify({ sessionId, session, question: finalQ }),
       });
-      setAnswer(await res.json());
+      const data = await res.json();
+      adoptSession(data);
+      setAnswer(data);
     } finally {
       setBusy(false);
     }
@@ -280,9 +304,10 @@ export default function CiteCheckApp() {
       const res = await fetch("/api/packet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ sessionId, session }),
       });
       const data = await res.json();
+      adoptSession(data);
       setPacket(data.packet);
       const calc = data.packet?.calc as { readinessStatus?: string } | undefined;
       setStatus(
@@ -323,9 +348,14 @@ export default function CiteCheckApp() {
 
   async function deleteSession() {
     if (!sessionId) return;
-    await fetch(`/api/session/${sessionId}`, { method: "DELETE" });
+    await fetch(`/api/session/${sessionId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session }),
+    });
     const created = await fetch("/api/session", { method: "POST" }).then((r) => r.json());
     setSessionId(created.sessionId);
+    setSession(created.session ?? null);
     setFields([]);
     setDocs([]);
     setPacket(null);

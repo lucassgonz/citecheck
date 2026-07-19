@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import { audit, getSession, saveSession } from "@/lib/session";
+import { audit, resolveSession, saveSession, type OfficialSession } from "@/lib/session";
 
 export async function POST(req: Request) {
   const body = (await req.json()) as {
     sessionId?: string;
+    session?: OfficialSession | null;
     documentId?: string;
     updates?: Array<{ field: string; value: string | number | null; confirmed?: boolean }>;
   };
 
-  if (!body.sessionId || !body.documentId) {
+  if ((!body.sessionId && !body.session?.id) || !body.documentId) {
     return NextResponse.json({ error: "sessionId and documentId required" }, { status: 400 });
   }
 
-  const session = getSession(body.sessionId);
+  const session = resolveSession(body);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   const doc = session.documents.find((d) => d.documentId === body.documentId);
@@ -39,5 +40,5 @@ export async function POST(req: Request) {
 
   audit(session, "fields_updated", `Updated ${body.documentId}`);
   saveSession(session);
-  return NextResponse.json({ document: doc, sessionId: session.id });
+  return NextResponse.json({ document: doc, sessionId: session.id, session });
 }

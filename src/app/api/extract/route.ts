@@ -7,7 +7,9 @@ import {
 } from "@/lib/organizer";
 import { extractOfficialDocument } from "@/lib/extract";
 import { extractPdfText } from "@/lib/pdfText";
-import { audit, getSession, saveSession } from "@/lib/session";
+import { audit, resolveSession, saveSession, type OfficialSession } from "@/lib/session";
+
+export const maxDuration = 60;
 
 export async function GET() {
   return NextResponse.json({
@@ -19,16 +21,17 @@ export async function GET() {
 export async function POST(req: Request) {
   const body = (await req.json()) as {
     sessionId?: string;
+    session?: OfficialSession | null;
     householdId?: string;
     documentId?: string;
     consent?: boolean;
     confirmAll?: boolean;
   };
 
-  if (!body.sessionId) {
+  if (!body.sessionId && !body.session?.id) {
     return NextResponse.json({ error: "sessionId required" }, { status: 400 });
   }
-  const session = getSession(body.sessionId);
+  const session = resolveSession(body);
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
   if (body.consent) {
@@ -47,6 +50,7 @@ export async function POST(req: Request) {
     saveSession(session);
     return NextResponse.json({
       sessionId: session.id,
+      session,
       householdId: body.householdId,
       documents: docsForHousehold(body.householdId).map((d) => ({
         document_id: d.document_id,
@@ -98,6 +102,8 @@ export async function POST(req: Request) {
   saveSession(session);
 
   return NextResponse.json({
+    sessionId: session.id,
+    session,
     document: {
       id: gold.document_id,
       type: gold.document_type,

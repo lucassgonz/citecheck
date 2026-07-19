@@ -61,6 +61,19 @@ export function saveSession(s: OfficialSession) {
   return s;
 }
 
+/** Prefer client snapshot so sessions survive serverless cold starts (e.g. Vercel). */
+export function resolveSession(input: {
+  sessionId?: string;
+  session?: OfficialSession | null;
+}): OfficialSession | null {
+  if (input.session?.id && !input.session.deleted) {
+    saveSession(input.session);
+    return input.session;
+  }
+  if (input.sessionId) return getSession(input.sessionId);
+  return null;
+}
+
 export function deleteSession(id: string) {
   const s = store().get(id);
   if (!s) return false;
