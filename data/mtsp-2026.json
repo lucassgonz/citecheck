@@ -1,0 +1,33 @@
+{
+  "source": "HUD MTSP Income Limits (demo freeze for RealDoor)",
+  "effectiveDate": "2026-04-01",
+  "area": "Boston-Cambridge-Quincy, MA-NH HUD Metro FMR Area",
+  "medianFamilyIncome": 146900,
+  "limits": {
+    "50": {
+      "1": 51400,
+      "2": 58750,
+      "3": 66100,
+      "4": 73400,
+      "5": 79300,
+      "6": 85150,
+      "7": 91050,
+      "8": 96900
+    },
+    "60": {
+      "1": 61680,
+      "2": 70500,
+      "3": 79320,
+      "4": 88080,
+      "5": 95160,
+      "6": 102180,
+      "7": 109260,
+      "8": 116280
+    }
+  },
+  "formulaNotes": [
+    "Annual household income is compared to the MTSP limit for household size at the selected AMI percentage.",
+    "LIHTC units commonly use 50% or 60% AMI (MTSP) limits; this demo freezes both.",
+    "This calculator never labels a renter eligible or ineligible — it only shows confirmed income vs published threshold."
+  ]
+}

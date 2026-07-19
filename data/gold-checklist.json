@@ -1,0 +1,36 @@
+{
+  "checklistId": "gold-lihtc-cambridge-2026",
+  "items": [
+    {
+      "id": "photo-id",
+      "label": "Government photo ID",
+      "required": true,
+      "category": "identity"
+    },
+    {
+      "id": "ssn-itin",
+      "label": "Social Security card or ITIN letter",
+      "required": false,
+      "category": "identity"
+    },
+    {
+      "id": "pay-stubs",
+      "label": "Last 4 consecutive pay stubs (or benefit award letter)",
+      "required": true,
+      "category": "income",
+      "maxAgeDays": 120
+    },
+    {
+      "id": "tax-return",
+      "label": "Prior-year tax return or W-2 (if requested)",
+      "required": false,
+      "category": "income"
+    },
+    {
+      "id": "release",
+      "label": "Signed information release",
+      "required": true,
+      "category": "consent"
+    }
+  ]
+}
